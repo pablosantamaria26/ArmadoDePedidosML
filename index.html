@@ -3,182 +3,451 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Armado de Pedidos</title>
+    <meta name="theme-color" content="#0f172a"> <title>Pedidos Mercado Limpio</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Evita selecciones accidentales al tocar rápido */
-        body { user-select: none; -webkit-user-select: none; }
-        .tab-activa { border-bottom: 4px solid #3b82f6; color: #3b82f6; font-weight: bold; }
+        body { user-select: none; -webkit-user-select: none; overscroll-behavior-y: none; }
+        .tab-activa { border-bottom: 4px solid #38bdf8; color: #38bdf8; font-weight: 800; }
+        .item-card { transition: all 0.2s ease; }
+        .item-armado { border-color: #22c55e !important; background-color: #f0fdf4 !important; }
+        
+        /* Modal Overlay */
+        .modal-overlay { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); }
+        
+        /* Ocultar barra de scroll para limpieza visual */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800 font-sans">
+<body class="bg-gray-100 text-gray-800 font-sans pb-24">
 
-    <header class="bg-blue-600 text-white p-4 shadow-md fixed top-0 w-full z-10">
-        <h1 class="text-2xl font-bold text-center" id="titulo-header">📦 Pedidos Distribuidora</h1>
-        <div class="flex justify-around mt-3" id="nav-tabs">
-            <button onclick="cargarLista('hoy')" id="tab-hoy" class="pb-2 text-lg tab-activa w-1/2 text-center">HOY</button>
-            <button onclick="cargarLista('pendientes')" id="tab-pendientes" class="pb-2 text-lg w-1/2 text-center text-blue-200">PENDIENTES</button>
+    <header class="bg-slate-900 text-white p-3 shadow-lg fixed top-0 w-full z-20">
+        <h1 class="text-2xl font-black text-center tracking-wide text-blue-100">📦 MERCADO LIMPIO</h1>
+        <div class="flex justify-between mt-4" id="nav-tabs">
+            <button onclick="cargarLista('anteriores')" id="tab-anteriores" class="pb-2 text-sm w-1/3 text-center text-slate-400 font-bold uppercase">Anteriores</button>
+            <button onclick="cargarLista('hoy')" id="tab-hoy" class="pb-2 text-sm w-1/3 text-center text-slate-400 font-bold uppercase">HOY</button>
+            <button onclick="cargarLista('pendientes')" id="tab-pendientes" class="pb-2 text-sm w-1/3 text-center text-slate-400 font-bold uppercase">Pendientes</button>
         </div>
     </header>
 
-    <main class="mt-28 p-4 mb-20" id="app-container">
-        <div id="loading" class="text-center text-xl mt-10 hidden font-bold animate-pulse">Cargando datos...</div>
-        <div id="vista-lista" class="grid gap-4"></div>
-        <div id="vista-detalle" class="hidden"></div>
+    <div id="loading" class="fixed inset-0 z-50 flex items-center justify-center bg-white bg-opacity-80 hidden">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-slate-900"></div>
+    </div>
+
+    <main class="mt-28 p-3" id="vista-lista"></main>
+
+    <main class="hidden" id="vista-detalle">
+        <div class="bg-white shadow-md p-4 sticky top-0 z-10 border-b-4 border-slate-900">
+            <div class="flex justify-between items-start">
+                <button onclick="volverALista()" class="bg-slate-200 text-slate-800 px-4 py-2 rounded-lg font-bold text-lg active:bg-slate-300">⬅ VOLVER</button>
+                <div class="text-right">
+                    <p class="text-xs font-bold text-slate-500 uppercase">Vendedor</p>
+                    <p class="text-lg font-black bg-slate-900 text-white px-2 py-1 rounded inline-block" id="det-vendedor"></p>
+                </div>
+            </div>
+            <h2 class="text-3xl font-black mt-3 leading-tight" id="det-cliente"></h2>
+            <div id="det-obs-container" class="hidden mt-2 bg-red-100 border-l-4 border-red-500 p-2">
+                <p class="text-red-700 font-bold text-lg leading-tight" id="det-obs"></p>
+            </div>
+        </div>
+
+        <div class="p-3" id="lista-articulos"></div>
+
+        <div class="p-3">
+            <button onclick="abrirModalAgregar()" class="w-full bg-slate-800 text-white font-bold text-xl py-4 rounded-xl shadow-md flex justify-center items-center gap-2 active:bg-slate-700">
+                <span class="text-3xl leading-none">+</span> AGREGAR ARTÍCULO EXTRA
+            </button>
+        </div>
     </main>
 
-    <script>
+    <div id="btn-finalizar-container" class="fixed bottom-0 w-full p-3 bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] hidden z-20">
+        <button onclick="abrirToastConfirmacion()" class="w-full bg-green-500 text-white p-5 rounded-xl font-black text-2xl shadow-lg active:bg-green-600 transition tracking-wide">
+            ✅ CERRAR PEDIDO
+        </button>
+    </div>
 
-        const API_URL = "https://script.google.com/macros/s/AKfycbyFp4xCZq61Vu5V4A4gFgeFp-0dG9t_PsnToy6GlvLIKr75gkXYwNdmnQyAZEfRhshqbw/exec"; 
+    <div id="modal-urgente" class="fixed inset-0 z-50 flex items-center justify-center modal-overlay hidden px-4">
+        <div class="bg-white rounded-2xl shadow-2xl overflow-hidden w-full max-w-md border-4 border-yellow-400 animate-bounce">
+            <div class="bg-yellow-400 p-4 text-center">
+                <span class="text-5xl">🚨</span>
+                <h2 class="text-2xl font-black text-slate-900 mt-2 tracking-tighter">¡URGENTE - SALE HOY!</h2>
+            </div>
+            <div class="p-6 text-center">
+                <p class="text-xl text-gray-800 font-bold mb-6 leading-tight">La app detectó que este pedido se entrega HOY.</p>
+                <p class="text-lg text-red-600 font-bold mb-6">Avisale a Laura para organizarlo y armalo con prioridad.</p>
+                <button onclick="cerrarModal('modal-urgente')" class="w-full bg-slate-900 text-white py-4 rounded-xl font-black text-xl active:bg-slate-700">ENTENDIDO, YA LO ARMO</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-edicion" class="fixed inset-0 z-50 flex items-center justify-center modal-overlay hidden px-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md">
+            <h2 id="titulo-modal-edicion" class="text-2xl font-black text-slate-900 mb-4 border-b-2 border-slate-200 pb-2">Editar Artículo</h2>
+            
+            <label class="block text-sm font-bold text-gray-700 mb-1">Cantidad:</label>
+            <input type="number" id="input-cantidad" class="w-full text-4xl font-black border-2 border-slate-300 rounded-lg p-3 mb-4 focus:border-slate-900 focus:outline-none text-center" inputmode="numeric">
+            
+            <label class="block text-sm font-bold text-gray-700 mb-1">Descripción / Marca:</label>
+            <textarea id="input-descripcion" rows="3" class="w-full text-xl font-bold border-2 border-slate-300 rounded-lg p-3 mb-6 focus:border-slate-900 focus:outline-none uppercase"></textarea>
+            
+            <div class="flex gap-3">
+                <button onclick="cerrarModal('modal-edicion')" class="w-1/3 bg-gray-300 text-gray-800 py-4 rounded-xl font-bold text-lg">CANCELAR</button>
+                <button onclick="guardarEdicion()" id="btn-guardar-edicion" class="w-2/3 bg-blue-600 text-white py-4 rounded-xl font-black text-lg">GUARDAR</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-repaso" class="fixed inset-0 z-50 flex items-end justify-center modal-overlay hidden">
+        <div class="bg-white rounded-t-3xl shadow-2xl p-6 w-full pb-10">
+            <h2 class="text-2xl font-black text-slate-900 mb-2">🛑 REPASO FINAL</h2>
+            <p class="text-lg text-gray-600 mb-4 leading-tight">Asegurate de que no falte nada importante antes de cerrar la caja.</p>
+            
+            <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 mb-6 max-h-48 overflow-y-auto" id="lista-resumen-toast">
+                </div>
+
+            <label class="flex items-center gap-4 bg-blue-50 p-4 rounded-xl border-2 border-blue-200 mb-6 active:bg-blue-100 transition">
+                <input type="checkbox" id="check-verificado" onchange="verificarCheckCierre()" class="w-8 h-8 rounded text-blue-600">
+                <span class="text-lg font-bold text-slate-800 leading-tight">Confirmo que verifiqué todo físicamente.</span>
+            </label>
+
+            <button id="btn-cierre-definitivo" onclick="procesarCierrePedido()" disabled class="w-full bg-slate-300 text-gray-500 p-5 rounded-xl font-black text-2xl transition tracking-wide">
+                CERRAR Y FACTURAR
+            </button>
+            <button onclick="cerrarModal('modal-repaso')" class="w-full mt-3 text-slate-500 font-bold py-2">Cancelar y seguir armando</button>
+        </div>
+    </div>
+
+    <script>
+        // === PEGAR ACÁ TU URL DE APPS SCRIPT (NUEVA IMPLEMENTACIÓN) ===
+        const API_URL = "https://script.google.com/macros/s/AKfycbzRof3zM2zJ-wVwQ1dY3X_hW9cQn4FjM/exec"; 
         
+        // Variables globales
+        let pedidoActual = null;
+        let idArchivoActual = null;
+        let itemEditando = null; // null si es nuevo
+        let modoEdicion = ''; // 'editar' o 'agregar'
+
         const uiLista = document.getElementById('vista-lista');
         const uiDetalle = document.getElementById('vista-detalle');
         const uiTabs = document.getElementById('nav-tabs');
-        const loading = document.getElementById('loading');
+        const btnFinalizar = document.getElementById('btn-finalizar-container');
 
-        // 1. Cargar la lista de pedidos
+        // Formato de fecha para el semáforo
+        const obtenerFechaHoyStr = () => {
+            const h = new Date();
+            return `${String(h.getDate()).padStart(2,'0')}/${String(h.getMonth()+1).padStart(2,'0')}/${h.getFullYear()}`;
+        };
+
+        // 1. CARGA DE LISTAS
         async function cargarLista(tipo) {
             uiDetalle.classList.add('hidden');
+            btnFinalizar.classList.add('hidden');
             uiLista.classList.remove('hidden');
             uiTabs.classList.remove('hidden');
             uiLista.innerHTML = '';
             
-            // Estilos de pestañas
-            document.getElementById('tab-hoy').className = `pb-2 text-lg w-1/2 text-center ${tipo === 'hoy' ? 'tab-activa text-white' : 'text-blue-200'}`;
-            document.getElementById('tab-pendientes').className = `pb-2 text-lg w-1/2 text-center ${tipo === 'pendientes' ? 'tab-activa text-white' : 'text-blue-200'}`;
+            document.querySelectorAll('#nav-tabs button').forEach(b => {
+                b.classList.remove('tab-activa', 'text-blue-100');
+                b.classList.add('text-slate-400');
+            });
+            const tabActiva = document.getElementById(`tab-${tipo}`);
+            tabActiva.classList.add('tab-activa', 'text-blue-100');
+            tabActiva.classList.remove('text-slate-400');
 
-            loading.classList.remove('hidden');
+            mostrarLoading(true);
 
             try {
                 const res = await fetch(`${API_URL}?accion=listarPedidos&tipo=${tipo}`);
                 const data = await res.json();
-                
-                loading.classList.add('hidden');
+                mostrarLoading(false);
 
                 if (data.datos.length === 0) {
-                    uiLista.innerHTML = `<p class="text-center text-gray-500 text-xl mt-10">No hay pedidos en esta carpeta.</p>`;
+                    uiLista.innerHTML = `<p class="text-center font-bold text-slate-400 text-xl mt-10">Sin pedidos en esta bandeja.</p>`;
                     return;
                 }
 
                 data.datos.forEach(pedido => {
                     const btn = document.createElement('button');
-                    // BOTONES GIGANTES para fácil toque
-                    btn.className = "w-full bg-white p-6 rounded-xl shadow-md text-left border-l-8 border-blue-500 active:bg-gray-200 transition";
+                    btn.className = "w-full bg-white p-5 rounded-2xl shadow-sm border-2 border-slate-100 text-left mb-3 active:bg-slate-50 transition flex flex-col gap-1";
                     btn.innerHTML = `
-                        <div class="text-2xl font-bold truncate">${pedido.nombre.replace('Pedido_', '').replace(/_/g, ' ')}</div>
-                        <div class="text-gray-500 text-lg mt-2">Hora de creación: ${pedido.fecha}</div>
+                        <div class="text-2xl font-black text-slate-800 truncate tracking-tight">${pedido.nombre}</div>
+                        <div class="text-slate-500 font-bold">Generado: ${pedido.fecha}</div>
                     `;
-                    btn.onclick = () => abrirPedido(pedido.id, pedido.nombre);
+                    btn.onclick = () => abrirPedido(pedido.id);
                     uiLista.appendChild(btn);
                 });
             } catch (error) {
-                loading.classList.add('hidden');
-                uiLista.innerHTML = `<p class="text-red-500 text-center text-xl">Error de conexión.</p>`;
+                mostrarLoading(false);
+                uiLista.innerHTML = `<p class="text-red-500 text-center text-xl font-bold mt-10">Error de conexión 📶</p>`;
             }
         }
 
-        // 2. Abrir un pedido específico
-        async function abrirPedido(id, nombre) {
+        // 2. ABRIR DETALLE DEL PEDIDO
+        async function abrirPedido(id) {
+            idArchivoActual = id;
             uiLista.classList.add('hidden');
             uiTabs.classList.add('hidden');
             uiDetalle.classList.remove('hidden');
-            uiDetalle.innerHTML = '';
-            loading.classList.remove('hidden');
+            btnFinalizar.classList.remove('hidden');
+            document.getElementById('lista-articulos').innerHTML = '';
+            
+            mostrarLoading(true);
 
             try {
                 const res = await fetch(`${API_URL}?accion=obtenerPedido&id=${id}`);
                 const data = await res.json();
-                const pedido = data.datos;
+                pedidoActual = data.datos;
+                mostrarLoading(false);
 
-                loading.classList.add('hidden');
+                // Llenar Cabecera Sticky
+                document.getElementById('det-cliente').innerText = pedidoActual.cliente;
+                document.getElementById('det-vendedor').innerText = pedidoActual.vendedor || 'N/A';
+                
+                const obsDiv = document.getElementById('det-obs-container');
+                if (pedidoActual.observaciones) {
+                    document.getElementById('det-obs').innerText = pedidoActual.observaciones;
+                    obsDiv.classList.remove('hidden');
+                } else {
+                    obsDiv.classList.add('hidden');
+                }
 
-                let html = `
-                    <button onclick="cargarLista('hoy')" class="mb-4 bg-gray-300 text-gray-800 px-6 py-3 rounded-lg font-bold text-xl w-full">⬅ VOLVER</button>
-                    <div class="bg-blue-100 p-4 rounded-lg mb-4 shadow">
-                        <h2 class="text-3xl font-bold">${pedido.cliente}</h2>
-                        <p class="text-lg text-gray-700 mt-2">Vendedor: <b>${pedido.vendedor}</b></p>
-                        ${pedido.observaciones ? `<p class="text-red-600 text-lg font-bold mt-2 border-t border-blue-300 pt-2">Ojo: ${pedido.observaciones}</p>` : ''}
-                    </div>
-                `;
+                // Lógica de Semáforo
+                if (pedidoActual.fechaEntrega === obtenerFechaHoyStr()) {
+                    document.getElementById('modal-urgente').classList.remove('hidden');
+                }
 
-                pedido.items.forEach(item => {
-                    const idCheck = `check_${item.filaSpreadsheet}`;
-                    const bgClass = item.armado ? 'bg-green-100 border-green-500' : 'bg-white border-gray-300';
-                    
-                    html += `
-                        <div id="card_${idCheck}" class="${bgClass} border-2 rounded-xl p-4 mb-3 flex items-center justify-between shadow-sm transition" onclick="toggleItem('${id}', ${item.filaSpreadsheet}, '${idCheck}')">
-                            <div class="w-3/4 pointer-events-none">
-                                <span class="text-3xl font-black text-blue-700 block">${item.cantidad}</span>
-                                <span class="text-2xl font-semibold text-gray-800 leading-tight">${item.descripcion}</span>
-                            </div>
-                            <div class="w-1/4 flex justify-end">
-                                <input type="checkbox" id="${idCheck}" ${item.armado ? 'checked' : ''} class="w-12 h-12 pointer-events-none rounded text-blue-600 focus:ring-blue-500">
-                            </div>
-                        </div>
-                    `;
-                });
+                renderizarItems();
 
-                html += `
-                    <button onclick="finalizarPedido('${id}')" class="mt-8 bg-green-500 text-white p-6 rounded-xl font-bold text-2xl w-full shadow-lg active:bg-green-700 transition">
-                        ✅ MARCAR PEDIDO COMPLETO
-                    </button>
-                `;
-
-                uiDetalle.innerHTML = html;
             } catch (error) {
-                loading.classList.add('hidden');
-                uiDetalle.innerHTML = `<button onclick="cargarLista('hoy')" class="bg-gray-300 px-6 py-3 rounded text-xl w-full">⬅ VOLVER</button><p class="mt-4 text-red-500 text-xl text-center">Error al cargar pedido.</p>`;
+                mostrarLoading(false);
+                alert("Error al cargar el detalle del pedido.");
+                volverALista();
             }
         }
 
-        // 3. Tildar/Destildar item individual
-        function toggleItem(idArchivo, fila, idCheck) {
-            const checkbox = document.getElementById(idCheck);
-            const card = document.getElementById(`card_${idCheck}`);
-            
-            checkbox.checked = !checkbox.checked;
-            const nuevoEstado = checkbox.checked;
+        // RENDERIZAR ITEMS (Permite refrescar la lista localmente al editar)
+        function renderizarItems() {
+            const container = document.getElementById('lista-articulos');
+            container.innerHTML = '';
 
-            // Cambiar color al instante para feedback visual rápido
-            if (nuevoEstado) {
-                card.classList.replace('bg-white', 'bg-green-100');
-                card.classList.replace('border-gray-300', 'border-green-500');
+            pedidoActual.items.forEach((item, index) => {
+                const idCheck = `check_${index}`;
+                const bgClass = item.armado ? 'item-armado' : 'bg-white border-slate-200';
+                
+                const card = document.createElement('div');
+                card.id = `card_${index}`;
+                card.className = `item-card ${bgClass} border-2 rounded-2xl p-4 mb-3 flex items-center justify-between shadow-sm relative overflow-hidden`;
+                
+                // Lógica de Pulsación Larga (Long Press)
+                let pressTimer;
+                card.addEventListener('touchstart', () => { pressTimer = setTimeout(() => abrirModalEditar(index), 600); }, {passive: true});
+                card.addEventListener('touchend', () => clearTimeout(pressTimer));
+                card.addEventListener('touchmove', () => clearTimeout(pressTimer));
+                // Para probar en PC
+                card.addEventListener('mousedown', () => { pressTimer = setTimeout(() => abrirModalEditar(index), 600); });
+                card.addEventListener('mouseup', () => clearTimeout(pressTimer));
+                card.addEventListener('mouseleave', () => clearTimeout(pressTimer));
+
+                card.innerHTML = `
+                    <div class="w-3/4 pointer-events-none pr-2">
+                        <div class="flex items-center gap-3">
+                            <span class="text-4xl font-black text-slate-900 leading-none">${item.cantidad}</span>
+                            <span class="text-xl font-bold text-slate-700 leading-tight uppercase">${item.descripcion}</span>
+                        </div>
+                    </div>
+                    <div class="w-1/4 flex justify-end items-center h-full">
+                        <input type="checkbox" id="${idCheck}" ${item.armado ? 'checked' : ''} class="w-12 h-12 rounded-lg text-green-500 border-2 border-slate-300 pointer-events-none">
+                    </div>
+                    <div class="absolute inset-0 z-10" onclick="toggleItem(${index})"></div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function volverALista() {
+            uiDetalle.classList.add('hidden');
+            btnFinalizar.classList.add('hidden');
+            uiLista.classList.remove('hidden');
+            uiTabs.classList.remove('hidden');
+            window.scrollTo(0, 0);
+        }
+
+        // 3. CHECKBOX TÁCTIL
+        function toggleItem(index) {
+            const item = pedidoActual.items[index];
+            item.armado = !item.armado;
+            
+            const checkbox = document.getElementById(`check_${index}`);
+            const card = document.getElementById(`card_${index}`);
+            checkbox.checked = item.armado;
+
+            if (item.armado) {
+                card.classList.add('item-armado');
+                card.classList.remove('bg-white', 'border-slate-200');
             } else {
-                card.classList.replace('bg-green-100', 'bg-white');
-                card.classList.replace('border-green-500', 'border-gray-300');
+                card.classList.remove('item-armado');
+                card.classList.add('bg-white', 'border-slate-200');
             }
 
-            // Enviar a Google Apps Script en segundo plano
+            // Guardar en background
             fetch(API_URL, {
                 method: 'POST',
                 body: JSON.stringify({
                     accion: 'marcarItem',
-                    idArchivo: idArchivo,
-                    fila: fila,
-                    estado: nuevoEstado
+                    idArchivo: idArchivoActual,
+                    fila: item.filaSpreadsheet,
+                    estado: item.armado
                 })
-            }).catch(e => console.error("Error al guardar item:", e));
+            }).catch(() => console.error("Error sincronizando en background"));
         }
 
-        // 4. Marcar pedido completo (Celda A1)
-        async function finalizarPedido(idArchivo) {
-            const btn = event.target;
-            btn.innerHTML = "Procesando...";
+        // 4. EDICIÓN Y AGREGADO (LONG PRESS Y BOTÓN NUEVO)
+        function abrirModalEditar(index) {
+            modoEdicion = 'editar';
+            itemEditando = index;
+            const item = pedidoActual.items[index];
+            
+            document.getElementById('titulo-modal-edicion').innerText = "Modificar Artículo";
+            document.getElementById('input-cantidad').value = item.cantidad;
+            document.getElementById('input-descripcion').value = item.descripcion.replace(' (modificado)', '');
+            
+            document.getElementById('modal-edicion').classList.remove('hidden');
+        }
+
+        function abrirModalAgregar() {
+            modoEdicion = 'agregar';
+            document.getElementById('titulo-modal-edicion').innerText = "Agregar Nuevo Artículo";
+            document.getElementById('input-cantidad').value = "";
+            document.getElementById('input-descripcion').value = "";
+            
+            document.getElementById('modal-edicion').classList.remove('hidden');
+            // Dar foco a cantidad
+            setTimeout(() => document.getElementById('input-cantidad').focus(), 100);
+        }
+
+        async function guardarEdicion() {
+            const btn = document.getElementById('btn-guardar-edicion');
+            const qty = document.getElementById('input-cantidad').value;
+            const desc = document.getElementById('input-descripcion').value.toUpperCase();
+
+            if (!qty || !desc) { alert("Completá ambos campos"); return; }
+
+            btn.innerText = "GUARDANDO...";
             btn.disabled = true;
 
-            await fetch(API_URL, {
-                method: 'POST',
-                body: JSON.stringify({
-                    accion: 'marcarPedidoCompleto',
-                    idArchivo: idArchivo
-                })
-            });
+            try {
+                if (modoEdicion === 'editar') {
+                    const item = pedidoActual.items[itemEditando];
+                    const res = await fetch(API_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ accion: 'editarItem', idArchivo: idArchivoActual, fila: item.filaSpreadsheet, cantidad: qty, descripcion: desc })
+                    });
+                    const data = await res.json();
+                    
+                    item.cantidad = qty;
+                    item.descripcion = data.nuevaDesc; // Incluye la marca "(modificado)"
+                } 
+                else if (modoEdicion === 'agregar') {
+                    const res = await fetch(API_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ accion: 'agregarItem', idArchivo: idArchivoActual, cantidad: qty, descripcion: desc })
+                    });
+                    const data = await res.json();
+                    
+                    pedidoActual.items.push({
+                        filaSpreadsheet: data.fila,
+                        armado: false,
+                        cantidad: qty,
+                        descripcion: data.nuevaDesc // Incluye la marca "(agregado extra)"
+                    });
+                }
+                
+                renderizarItems(); // Refrescar vista
+                cerrarModal('modal-edicion');
+                
+                // Bajar el scroll si se agregó algo al final
+                if(modoEdicion === 'agregar'){ window.scrollTo(0, document.body.scrollHeight); }
 
-            alert("¡Pedido cerrado!");
-            cargarLista('hoy'); // Vuelve a la lista principal
+            } catch (e) {
+                alert("Error al guardar. Revisá tu conexión.");
+            }
+
+            btn.innerText = "GUARDAR";
+            btn.disabled = false;
         }
 
-        // Iniciar
+        // 5. FLUJO DE CIERRE Y REPASO FINAL
+        function abrirToastConfirmacion() {
+            const listaRepaso = document.getElementById('lista-resumen-toast');
+            listaRepaso.innerHTML = '';
+            
+            // Mostrar los primeros 5 items o los de mayor cantidad para repaso
+            const itemsClave = [...pedidoActual.items].sort((a,b) => b.cantidad - a.cantidad).slice(0, 5);
+            
+            itemsClave.forEach(item => {
+                listaRepaso.innerHTML += `<div class="font-bold text-sm text-slate-700 border-b border-slate-200 py-1">• ${item.cantidad} x ${item.descripcion}</div>`;
+            });
+            
+            if(pedidoActual.items.length > 5) {
+               listaRepaso.innerHTML += `<div class="font-bold text-xs text-slate-400 mt-1 italic">... y ${pedidoActual.items.length - 5} artículos más.</div>`; 
+            }
+
+            document.getElementById('check-verificado').checked = false;
+            verificarCheckCierre(); // Deshabilita el botón por defecto
+            document.getElementById('modal-repaso').classList.remove('hidden');
+        }
+
+        function verificarCheckCierre() {
+            const check = document.getElementById('check-verificado').checked;
+            const btn = document.getElementById('btn-cierre-definitivo');
+            if (check) {
+                btn.disabled = false;
+                btn.classList.replace('bg-slate-300', 'bg-green-600');
+                btn.classList.replace('text-gray-500', 'text-white');
+            } else {
+                btn.disabled = true;
+                btn.classList.replace('bg-green-600', 'bg-slate-300');
+                btn.classList.replace('text-white', 'text-gray-500');
+            }
+        }
+
+        async function procesarCierrePedido() {
+            const btn = document.getElementById('btn-cierre-definitivo');
+            btn.innerText = "PROCESANDO...";
+            
+            try {
+                await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ accion: 'marcarPedidoCompleto', idArchivo: idArchivoActual })
+                });
+                cerrarModal('modal-repaso');
+                
+                // Mostrar un pequeño mensaje nativo
+                const toastBox = document.createElement('div');
+                toastBox.className = "fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-slate-900 text-white font-black text-2xl p-6 rounded-2xl shadow-2xl z-50 text-center";
+                toastBox.innerHTML = "✅<br>¡PEDIDO CERRADO Y FACTURADO!";
+                document.body.appendChild(toastBox);
+                
+                setTimeout(() => {
+                    toastBox.remove();
+                    volverALista();
+                    // Refrescar la pestaña actual
+                    const tabActiva = document.querySelector('.tab-activa').id.replace('tab-', '');
+                    cargarLista(tabActiva);
+                }, 2000);
+
+            } catch(e) {
+                alert("Hubo un error al cerrar el pedido.");
+                btn.innerText = "CERRAR Y FACTURAR";
+            }
+        }
+
+        // Utils
+        function mostrarLoading(show) { document.getElementById('loading').classList.toggle('hidden', !show); }
+        function cerrarModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        // Inicializar
         cargarLista('hoy');
     </script>
 </body>
