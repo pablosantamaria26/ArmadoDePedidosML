@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Armado de Pedidos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Evita selecciones accidentales al tocar rápido */
+        body { user-select: none; -webkit-user-select: none; }
+        .tab-activa { border-bottom: 4px solid #3b82f6; color: #3b82f6; font-weight: bold; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans">
+
+    <header class="bg-blue-600 text-white p-4 shadow-md fixed top-0 w-full z-10">
+        <h1 class="text-2xl font-bold text-center" id="titulo-header">📦 Pedidos Distribuidora</h1>
+        <div class="flex justify-around mt-3" id="nav-tabs">
+            <button onclick="cargarLista('hoy')" id="tab-hoy" class="pb-2 text-lg tab-activa w-1/2 text-center">HOY</button>
+            <button onclick="cargarLista('pendientes')" id="tab-pendientes" class="pb-2 text-lg w-1/2 text-center text-blue-200">PENDIENTES</button>
+        </div>
+    </header>
+
+    <main class="mt-28 p-4 mb-20" id="app-container">
+        <div id="loading" class="text-center text-xl mt-10 hidden font-bold animate-pulse">Cargando datos...</div>
+        <div id="vista-lista" class="grid gap-4"></div>
+        <div id="vista-detalle" class="hidden"></div>
+    </main>
+
+    <script>
+
+        const API_URL = "https://script.google.com/macros/s/AKfycbyFp4xCZq61Vu5V4A4gFgeFp-0dG9t_PsnToy6GlvLIKr75gkXYwNdmnQyAZEfRhshqbw/exec"; 
+        
+        const uiLista = document.getElementById('vista-lista');
+        const uiDetalle = document.getElementById('vista-detalle');
+        const uiTabs = document.getElementById('nav-tabs');
+        const loading = document.getElementById('loading');
+
+        // 1. Cargar la lista de pedidos
+        async function cargarLista(tipo) {
+            uiDetalle.classList.add('hidden');
+            uiLista.classList.remove('hidden');
+            uiTabs.classList.remove('hidden');
+            uiLista.innerHTML = '';
+            
+            // Estilos de pestañas
+            document.getElementById('tab-hoy').className = `pb-2 text-lg w-1/2 text-center ${tipo === 'hoy' ? 'tab-activa text-white' : 'text-blue-200'}`;
+            document.getElementById('tab-pendientes').className = `pb-2 text-lg w-1/2 text-center ${tipo === 'pendientes' ? 'tab-activa text-white' : 'text-blue-200'}`;
+
+            loading.classList.remove('hidden');
+
+            try {
+                const res = await fetch(`${API_URL}?accion=listarPedidos&tipo=${tipo}`);
+                const data = await res.json();
+                
+                loading.classList.add('hidden');
+
+                if (data.datos.length === 0) {
+                    uiLista.innerHTML = `<p class="text-center text-gray-500 text-xl mt-10">No hay pedidos en esta carpeta.</p>`;
+                    return;
+                }
+
+                data.datos.forEach(pedido => {
+                    const btn = document.createElement('button');
+                    // BOTONES GIGANTES para fácil toque
+                    btn.className = "w-full bg-white p-6 rounded-xl shadow-md text-left border-l-8 border-blue-500 active:bg-gray-200 transition";
+                    btn.innerHTML = `
+                        <div class="text-2xl font-bold truncate">${pedido.nombre.replace('Pedido_', '').replace(/_/g, ' ')}</div>
+                        <div class="text-gray-500 text-lg mt-2">Hora de creación: ${pedido.fecha}</div>
+                    `;
+                    btn.onclick = () => abrirPedido(pedido.id, pedido.nombre);
+                    uiLista.appendChild(btn);
+                });
+            } catch (error) {
+                loading.classList.add('hidden');
+                uiLista.innerHTML = `<p class="text-red-500 text-center text-xl">Error de conexión.</p>`;
+            }
+        }
+
+        // 2. Abrir un pedido específico
+        async function abrirPedido(id, nombre) {
+            uiLista.classList.add('hidden');
+            uiTabs.classList.add('hidden');
+            uiDetalle.classList.remove('hidden');
+            uiDetalle.innerHTML = '';
+            loading.classList.remove('hidden');
+
+            try {
+                const res = await fetch(`${API_URL}?accion=obtenerPedido&id=${id}`);
+                const data = await res.json();
+                const pedido = data.datos;
+
+                loading.classList.add('hidden');
+
+                let html = `
+                    <button onclick="cargarLista('hoy')" class="mb-4 bg-gray-300 text-gray-800 px-6 py-3 rounded-lg font-bold text-xl w-full">⬅ VOLVER</button>
+                    <div class="bg-blue-100 p-4 rounded-lg mb-4 shadow">
+                        <h2 class="text-3xl font-bold">${pedido.cliente}</h2>
+                        <p class="text-lg text-gray-700 mt-2">Vendedor: <b>${pedido.vendedor}</b></p>
+                        ${pedido.observaciones ? `<p class="text-red-600 text-lg font-bold mt-2 border-t border-blue-300 pt-2">Ojo: ${pedido.observaciones}</p>` : ''}
+                    </div>
+                `;
+
+                pedido.items.forEach(item => {
+                    const idCheck = `check_${item.filaSpreadsheet}`;
+                    const bgClass = item.armado ? 'bg-green-100 border-green-500' : 'bg-white border-gray-300';
+                    
+                    html += `
+                        <div id="card_${idCheck}" class="${bgClass} border-2 rounded-xl p-4 mb-3 flex items-center justify-between shadow-sm transition" onclick="toggleItem('${id}', ${item.filaSpreadsheet}, '${idCheck}')">
+                            <div class="w-3/4 pointer-events-none">
+                                <span class="text-3xl font-black text-blue-700 block">${item.cantidad}</span>
+                                <span class="text-2xl font-semibold text-gray-800 leading-tight">${item.descripcion}</span>
+                            </div>
+                            <div class="w-1/4 flex justify-end">
+                                <input type="checkbox" id="${idCheck}" ${item.armado ? 'checked' : ''} class="w-12 h-12 pointer-events-none rounded text-blue-600 focus:ring-blue-500">
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `
+                    <button onclick="finalizarPedido('${id}')" class="mt-8 bg-green-500 text-white p-6 rounded-xl font-bold text-2xl w-full shadow-lg active:bg-green-700 transition">
+                        ✅ MARCAR PEDIDO COMPLETO
+                    </button>
+                `;
+
+                uiDetalle.innerHTML = html;
+            } catch (error) {
+                loading.classList.add('hidden');
+                uiDetalle.innerHTML = `<button onclick="cargarLista('hoy')" class="bg-gray-300 px-6 py-3 rounded text-xl w-full">⬅ VOLVER</button><p class="mt-4 text-red-500 text-xl text-center">Error al cargar pedido.</p>`;
+            }
+        }
+
+        // 3. Tildar/Destildar item individual
+        function toggleItem(idArchivo, fila, idCheck) {
+            const checkbox = document.getElementById(idCheck);
+            const card = document.getElementById(`card_${idCheck}`);
+            
+            checkbox.checked = !checkbox.checked;
+            const nuevoEstado = checkbox.checked;
+
+            // Cambiar color al instante para feedback visual rápido
+            if (nuevoEstado) {
+                card.classList.replace('bg-white', 'bg-green-100');
+                card.classList.replace('border-gray-300', 'border-green-500');
+            } else {
+                card.classList.replace('bg-green-100', 'bg-white');
+                card.classList.replace('border-green-500', 'border-gray-300');
+            }
+
+            // Enviar a Google Apps Script en segundo plano
+            fetch(API_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    accion: 'marcarItem',
+                    idArchivo: idArchivo,
+                    fila: fila,
+                    estado: nuevoEstado
+                })
+            }).catch(e => console.error("Error al guardar item:", e));
+        }
+
+        // 4. Marcar pedido completo (Celda A1)
+        async function finalizarPedido(idArchivo) {
+            const btn = event.target;
+            btn.innerHTML = "Procesando...";
+            btn.disabled = true;
+
+            await fetch(API_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    accion: 'marcarPedidoCompleto',
+                    idArchivo: idArchivo
+                })
+            });
+
+            alert("¡Pedido cerrado!");
+            cargarLista('hoy'); // Vuelve a la lista principal
+        }
+
+        // Iniciar
+        cargarLista('hoy');
+    </script>
+</body>
+</html>
