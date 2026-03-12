@@ -3,7 +3,7 @@ const archivosParaCachear = [
   './',
   './index.html',
   './manifest.json',
-  './icon-192.jpg'
+  './icon-192.png' //
 ];
 
 // Instala el Service Worker y guarda los archivos básicos en el celular
