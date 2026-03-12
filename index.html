@@ -29,10 +29,16 @@
         <div class="flex justify-between items-center mb-2">
             <div>
                 <h1 class="text-xl font-black tracking-wide text-blue-100 leading-none">📦 MERCADO LIMPIO</h1>
-                <div class="text-xs text-slate-400 font-bold mt-1 flex items-center gap-1">
-                    ⏱️ Promedio de armado: <span id="ui-tiempo-promedio" class="text-white bg-slate-800 px-2 py-0.5 rounded">Calculando...</span>
+                
+                <button id="btn-instalar-app" onclick="forzarInstalacion()" class="hidden mt-2 bg-red-500 text-white text-xs font-black px-3 py-1 rounded-full shadow-lg border-2 border-red-300 animate-pulse">
+                    📲 TOCÁ ACÁ PARA INSTALAR LA APP
+                </button>
+                
+                <div class="text-xs text-slate-400 font-bold mt-2 flex items-center gap-1">
+                    ⏱️ Promedio: <span id="ui-tiempo-promedio" class="text-white bg-slate-800 px-2 py-0.5 rounded">Calculando...</span>
                 </div>
             </div>
+            
             <div class="relative w-12 h-12 flex items-center justify-center bg-slate-800 rounded-full shadow-inner">
                 <svg class="w-12 h-12 absolute inset-0">
                     <circle cx="24" cy="24" r="20" stroke="#1e293b" stroke-width="4" fill="transparent" />
@@ -53,11 +59,11 @@
         <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-400"></div>
     </div>
 
-    <main class="mt-28 p-3" id="vista-lista"></main>
+    <main class="mt-32 p-3" id="vista-lista"></main>
 
-    <main class="hidden mt-24" id="vista-detalle">
+    <main class="hidden mt-28" id="vista-detalle">
         
-        <div class="bg-white shadow-lg p-3 sticky top-24 z-10 border-b-4 border-slate-900">
+        <div class="bg-white shadow-lg p-3 sticky top-28 z-10 border-b-4 border-slate-900">
             <div class="flex justify-between items-start mb-1">
                 <button onclick="cerrarPedidoEnCurso()" class="bg-slate-200 text-slate-800 px-3 py-1 rounded-lg font-bold text-sm active:bg-slate-300">⬅ PAUSAR</button>
                 <div class="text-right">
@@ -99,7 +105,7 @@
 
     <div id="btn-finalizar-container" class="fixed bottom-0 w-full p-3 bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] hidden z-20">
         <button onclick="abrirToastConfirmacion()" class="w-full bg-green-500 text-white p-5 rounded-xl font-black text-2xl shadow-lg active:bg-green-600 transition tracking-wide flex justify-center items-center gap-2">
-            ✅ CERRAR PEDIDO
+            ✅ CERRAR PEDIDO TERMINADO
         </button>
     </div>
 
@@ -148,7 +154,36 @@
     </div>
 
     <script>
-       
+        // === REGISTRO DEL SERVICE WORKER ===
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker registrado OK'))
+                    .catch(err => console.log('Error al registrar SW', err));
+            });
+        }
+
+        // === CAPTURAR EL EVENTO DE INSTALACIÓN NATIVO ===
+        let eventoInstalacion;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            eventoInstalacion = e;
+            document.getElementById('btn-instalar-app').classList.remove('hidden');
+        });
+
+        function forzarInstalacion() {
+            if (eventoInstalacion) {
+                eventoInstalacion.prompt();
+                eventoInstalacion.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        document.getElementById('btn-instalar-app').classList.add('hidden');
+                    }
+                    eventoInstalacion = null;
+                });
+            }
+        }
+        
+        // === TU API DEL WORKER ===
         const API_URL = "https://armadodepedidosml.santamariapablodaniel.workers.dev/"; 
         
         let pedidoActual = null;
@@ -170,15 +205,12 @@
             return `${String(h.getDate()).padStart(2,'0')}/${String(h.getMonth()+1).padStart(2,'0')}/${h.getFullYear()}`; 
         };
 
-        // Helper para sacar el nombre del día
         function formatoDiaFecha(fechaStr) {
             if(!fechaStr) return "SIN FECHA";
             const partes = String(fechaStr).split(/[T /:-]/);
             if(partes.length < 3) return fechaStr; 
             
-            // Asume dd/mm/yyyy o dd-mm-yyyy
             let dia = partes[0], mes = partes[1], anio = partes[2];
-            // Si viene en formato yyyy-mm-dd
             if (partes[0].length === 4) { anio = partes[0]; mes = partes[1]; dia = partes[2]; }
             
             const d = new Date(anio, mes - 1, dia);
@@ -260,7 +292,7 @@
             uiDetalle.classList.remove('hidden');
             btnFinalizar.classList.remove('hidden');
             document.getElementById('lista-articulos').innerHTML = '';
-            document.getElementById('buscador-items').value = ''; // Reset buscador
+            document.getElementById('buscador-items').value = ''; 
             window.scrollTo(0, 0);
             
             mostrarLoading(true);
@@ -271,7 +303,6 @@
                 pedidoActual = data.datos;
                 mostrarLoading(false);
 
-                // LLENAR TODOS LOS DATOS STICKY
                 document.getElementById('det-cliente').innerText = pedidoActual.cliente;
                 document.getElementById('det-num-cliente').innerText = pedidoActual.numeroCliente || 'S/N';
                 document.getElementById('det-vendedor').innerText = pedidoActual.vendedor || 'N/A';
@@ -322,7 +353,6 @@
             }
         }
 
-        // BUSCADOR EN VIVO
         function filtrarItems() {
             const texto = document.getElementById('buscador-items').value.toLowerCase();
             const cards = document.querySelectorAll('.item-card');
@@ -374,7 +404,7 @@
                 container.appendChild(card);
             });
             actualizarContadorProgreso();
-            filtrarItems(); // Por si quedó texto en el buscador al editar
+            filtrarItems(); 
         }
 
         function toggleItem(index) {
