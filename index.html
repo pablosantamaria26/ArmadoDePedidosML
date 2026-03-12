@@ -12,16 +12,10 @@
         .tab-activa { border-bottom: 4px solid #38bdf8; color: #38bdf8; font-weight: 800; }
         .item-card { transition: all 0.2s ease; }
         .item-armado { border-color: #22c55e !important; background-color: #f0fdf4 !important; }
-        
-        /* Modal Overlay */
         .modal-overlay { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); }
-        
-        /* Ocultar barra de scroll para limpieza visual */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
-
-        /* Círculo de progreso animado */
         .progress-ring__circle {
             transition: stroke-dashoffset 0.5s ease-in-out, stroke 0.5s ease;
             transform: rotate(-90deg);
@@ -39,7 +33,6 @@
                     ⏱️ Promedio de armado: <span id="ui-tiempo-promedio" class="text-white bg-slate-800 px-2 py-0.5 rounded">Calculando...</span>
                 </div>
             </div>
-            
             <div class="relative w-12 h-12 flex items-center justify-center bg-slate-800 rounded-full shadow-inner">
                 <svg class="w-12 h-12 absolute inset-0">
                     <circle cx="24" cy="24" r="20" stroke="#1e293b" stroke-width="4" fill="transparent" />
@@ -63,17 +56,35 @@
     <main class="mt-28 p-3" id="vista-lista"></main>
 
     <main class="hidden mt-24" id="vista-detalle">
-        <div class="bg-white shadow-md p-4 sticky top-24 z-10 border-b-4 border-slate-900">
-            <div class="flex justify-between items-start">
-                <button onclick="cerrarPedidoEnCurso()" class="bg-slate-200 text-slate-800 px-4 py-2 rounded-lg font-bold text-lg active:bg-slate-300">⬅ PAUSAR</button>
+        
+        <div class="bg-white shadow-lg p-3 sticky top-24 z-10 border-b-4 border-slate-900">
+            <div class="flex justify-between items-start mb-1">
+                <button onclick="cerrarPedidoEnCurso()" class="bg-slate-200 text-slate-800 px-3 py-1 rounded-lg font-bold text-sm active:bg-slate-300">⬅ PAUSAR</button>
                 <div class="text-right">
-                    <p class="text-xs font-bold text-slate-500 uppercase">Vendedor</p>
-                    <p class="text-lg font-black bg-slate-900 text-white px-2 py-1 rounded inline-block" id="det-vendedor"></p>
+                    <span class="text-[10px] font-bold text-slate-500 uppercase block">Vendedor</span>
+                    <span class="text-sm font-black bg-slate-900 text-white px-2 py-0.5 rounded inline-block" id="det-vendedor"></span>
                 </div>
             </div>
-            <h2 class="text-3xl font-black mt-3 leading-tight" id="det-cliente"></h2>
-            <div id="det-obs-container" class="hidden mt-2 bg-red-100 border-l-4 border-red-500 p-2">
-                <p class="text-red-700 font-bold text-lg leading-tight" id="det-obs"></p>
+            
+            <h2 class="text-2xl font-black mt-1 leading-tight text-slate-800" id="det-cliente"></h2>
+            <p class="text-xs font-bold text-slate-500 mb-2 uppercase">Cliente N°: <span id="det-num-cliente" class="text-slate-900 font-black text-sm"></span></p>
+
+            <div class="bg-red-50 border-2 border-red-200 rounded-lg p-2 mb-2 flex justify-between items-center shadow-sm">
+                <span class="text-xs font-black text-red-800 uppercase tracking-wide">📅 SE ENTREGA:</span>
+                <span class="text-lg font-black text-red-600" id="det-fecha"></span>
+            </div>
+
+            <div id="det-obs-container" class="hidden mb-2 bg-yellow-100 border-l-4 border-yellow-500 p-2 shadow-sm">
+                <span class="text-[10px] font-black text-yellow-800 uppercase block tracking-wide">⚠️ Observaciones del pedido:</span>
+                <p class="text-yellow-900 font-bold text-sm leading-tight mt-0.5" id="det-obs"></p>
+            </div>
+
+            <div class="flex gap-2 items-center">
+                <input type="text" id="buscador-items" onkeyup="filtrarItems()" placeholder="🔍 Buscar artículo..." class="w-2/3 bg-slate-100 border border-slate-300 text-slate-800 text-sm rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500 font-bold">
+                <div class="w-1/3 bg-slate-100 rounded-lg p-1 text-center border border-slate-300">
+                    <span class="text-[10px] font-bold text-slate-500 uppercase block">Armados</span>
+                    <span class="text-lg font-black text-blue-600 leading-none" id="det-progreso">0/0</span>
+                </div>
             </div>
         </div>
 
@@ -81,7 +92,7 @@
 
         <div class="p-3">
             <button onclick="abrirModalAgregar()" class="w-full bg-slate-800 text-white font-bold text-xl py-4 rounded-xl shadow-md flex justify-center items-center gap-2 active:bg-slate-700">
-                <span class="text-3xl leading-none">+</span> AGREGAR ARTÍCULO EXTRA
+                <span class="text-3xl leading-none">+</span> AGREGAR EXTRA
             </button>
         </div>
     </main>
@@ -109,13 +120,10 @@
     <div id="modal-edicion" class="fixed inset-0 z-50 flex items-center justify-center modal-overlay hidden px-4">
         <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md">
             <h2 id="titulo-modal-edicion" class="text-2xl font-black text-slate-900 mb-4 border-b-2 border-slate-200 pb-2">Editar Artículo</h2>
-            
             <label class="block text-sm font-bold text-gray-700 mb-1">Cantidad:</label>
             <input type="number" id="input-cantidad" class="w-full text-4xl font-black border-2 border-slate-300 rounded-lg p-3 mb-4 focus:border-slate-900 focus:outline-none text-center" inputmode="numeric">
-            
             <label class="block text-sm font-bold text-gray-700 mb-1">Descripción / Marca:</label>
             <textarea id="input-descripcion" rows="3" class="w-full text-xl font-bold border-2 border-slate-300 rounded-lg p-3 mb-6 focus:border-slate-900 focus:outline-none uppercase"></textarea>
-            
             <div class="flex gap-3">
                 <button onclick="cerrarModal('modal-edicion')" class="w-1/3 bg-gray-300 text-gray-800 py-4 rounded-xl font-bold text-lg">CANCELAR</button>
                 <button onclick="guardarEdicion()" id="btn-guardar-edicion" class="w-2/3 bg-blue-600 text-white py-4 rounded-xl font-black text-lg">GUARDAR</button>
@@ -127,15 +135,11 @@
         <div class="bg-white rounded-t-3xl shadow-2xl p-6 w-full pb-10">
             <h2 class="text-2xl font-black text-slate-900 mb-2">🛑 REPASO FINAL</h2>
             <p class="text-lg text-gray-600 mb-4 leading-tight">Asegurate de que no falte nada importante antes de cerrar la caja.</p>
-            
-            <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 mb-6 max-h-48 overflow-y-auto" id="lista-resumen-toast">
-                </div>
-
+            <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 mb-6 max-h-48 overflow-y-auto" id="lista-resumen-toast"></div>
             <label class="flex items-center gap-4 bg-blue-50 p-4 rounded-xl border-2 border-blue-200 mb-6 active:bg-blue-100 transition">
                 <input type="checkbox" id="check-verificado" onchange="verificarCheckCierre()" class="w-8 h-8 rounded text-blue-600">
                 <span class="text-lg font-bold text-slate-800 leading-tight">Confirmo que verifiqué todo físicamente.</span>
             </label>
-
             <button id="btn-cierre-definitivo" onclick="procesarCierrePedido()" disabled class="w-full bg-slate-300 text-gray-500 p-5 rounded-xl font-black text-2xl transition tracking-wide">
                 CERRAR Y SEGUIR AL PRÓXIMO 🚀
             </button>
@@ -144,33 +148,46 @@
     </div>
 
     <script>
+        // === TU WORKER MAGNÍFICO (YA CONFIGURADO) ===
+        const API_URL = "https://tu-puente.tu-usuario.workers.dev"; // ← PEGAR LA URL DE TU WORKER DE CLOUDFLARE ACÁ
         
-        const API_URL = "https://armadodepedidosml.santamariapablodaniel.workers.dev/"; 
-        
-        // Variables globales
         let pedidoActual = null;
         let idArchivoActual = null;
         let itemEditando = null; 
         let modoEdicion = ''; 
         let listaActualCache = [];
 
-        // Variables de Gamificación y Tiempos
         let tiempoInicioPedido = 0;
         const CIRCUNFERENCIA = 125.6; 
 
-        // Elementos UI
         const uiLista = document.getElementById('vista-lista');
         const uiDetalle = document.getElementById('vista-detalle');
         const uiTabs = document.getElementById('nav-tabs');
         const btnFinalizar = document.getElementById('btn-finalizar-container');
 
-        // Formato de fecha para el semáforo
         const obtenerFechaHoyStr = () => { 
             const h = new Date(); 
             return `${String(h.getDate()).padStart(2,'0')}/${String(h.getMonth()+1).padStart(2,'0')}/${h.getFullYear()}`; 
         };
 
-        // INICIO DE LA APP (RESILIENCIA)
+        // Helper para sacar el nombre del día
+        function formatoDiaFecha(fechaStr) {
+            if(!fechaStr) return "SIN FECHA";
+            const partes = String(fechaStr).split(/[T /:-]/);
+            if(partes.length < 3) return fechaStr; 
+            
+            // Asume dd/mm/yyyy o dd-mm-yyyy
+            let dia = partes[0], mes = partes[1], anio = partes[2];
+            // Si viene en formato yyyy-mm-dd
+            if (partes[0].length === 4) { anio = partes[0]; mes = partes[1]; dia = partes[2]; }
+            
+            const d = new Date(anio, mes - 1, dia);
+            if (isNaN(d.getTime())) return fechaStr;
+
+            const dias = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+            return `${dias[d.getDay()]} ${dia}/${mes}/${anio}`;
+        }
+
         window.onload = () => {
             actualizarEstadisticasUI();
             const pedidoEnMemoria = localStorage.getItem('pedidoAbiertoId');
@@ -183,7 +200,6 @@
             }
         };
 
-        // 1. CARGA DE LISTAS
         async function cargarLista(tipo) {
             uiDetalle.classList.add('hidden');
             btnFinalizar.classList.add('hidden');
@@ -195,9 +211,7 @@
                 b.classList.remove('tab-activa', 'text-blue-100');
                 b.classList.add('text-slate-400');
             });
-            const tabActiva = document.getElementById(`tab-${tipo}`);
-            tabActiva.classList.add('tab-activa', 'text-blue-100');
-            tabActiva.classList.remove('text-slate-400');
+            document.getElementById(`tab-${tipo}`).classList.add('tab-activa', 'text-blue-100');
 
             mostrarLoading(true);
 
@@ -213,7 +227,7 @@
                 }
 
                 if (listaActualCache.length === 0) {
-                    uiLista.innerHTML = `<p class="text-center font-bold text-slate-400 text-xl mt-10">Sin pedidos en esta bandeja. ¡Excelente! 🎉</p>`;
+                    uiLista.innerHTML = `<p class="text-center font-bold text-slate-400 text-xl mt-10">Sin pedidos en esta bandeja.</p>`;
                     return;
                 }
 
@@ -233,11 +247,10 @@
                 });
             } catch (error) {
                 mostrarLoading(false);
-                uiLista.innerHTML = `<p class="text-red-500 text-center text-xl font-bold mt-10">Error de conexión 📶</p>`;
+                uiLista.innerHTML = `<p class="text-red-500 text-center text-xl font-bold mt-10">Error de conexión con el Worker 📶</p>`;
             }
         }
 
-        // 2. ABRIR DETALLE DEL PEDIDO
         async function abrirPedido(id, esRecuperacion = false) {
             idArchivoActual = id;
             localStorage.setItem('pedidoAbiertoId', id); 
@@ -247,6 +260,7 @@
             uiDetalle.classList.remove('hidden');
             btnFinalizar.classList.remove('hidden');
             document.getElementById('lista-articulos').innerHTML = '';
+            document.getElementById('buscador-items').value = ''; // Reset buscador
             window.scrollTo(0, 0);
             
             mostrarLoading(true);
@@ -257,8 +271,11 @@
                 pedidoActual = data.datos;
                 mostrarLoading(false);
 
+                // LLENAR TODOS LOS DATOS STICKY
                 document.getElementById('det-cliente').innerText = pedidoActual.cliente;
+                document.getElementById('det-num-cliente').innerText = pedidoActual.numeroCliente || 'S/N';
                 document.getElementById('det-vendedor').innerText = pedidoActual.vendedor || 'N/A';
+                document.getElementById('det-fecha').innerText = formatoDiaFecha(pedidoActual.fechaEntrega);
                 
                 const obsDiv = document.getElementById('det-obs-container');
                 if (pedidoActual.observaciones) {
@@ -268,7 +285,7 @@
                     obsDiv.classList.add('hidden');
                 }
 
-                if (!esRecuperacion && pedidoActual.fechaEntrega === obtenerFechaHoyStr()) {
+                if (!esRecuperacion && String(pedidoActual.fechaEntrega).includes(obtenerFechaHoyStr())) {
                     document.getElementById('modal-urgente').classList.remove('hidden');
                 }
 
@@ -276,7 +293,7 @@
 
             } catch (error) {
                 mostrarLoading(false);
-                alert("Error al cargar el detalle del pedido.");
+                alert("Error cargando pedido.");
                 cerrarPedidoEnCurso();
             }
         }
@@ -284,18 +301,44 @@
         function cerrarPedidoEnCurso() {
             localStorage.removeItem('pedidoAbiertoId');
             localStorage.removeItem('tiempoInicio');
-            
             uiDetalle.classList.add('hidden');
             btnFinalizar.classList.add('hidden');
             uiLista.classList.remove('hidden');
             uiTabs.classList.remove('hidden');
-            
-            // Refrescar la pestaña actual por si hubo cambios
             const tabActiva = document.querySelector('.tab-activa').id.replace('tab-', '');
             cargarLista(tabActiva);
         }
 
-        // RENDERIZAR ITEMS 
+        function actualizarContadorProgreso() {
+            const total = pedidoActual.items.length;
+            const armados = pedidoActual.items.filter(i => i.armado).length;
+            const contador = document.getElementById('det-progreso');
+            contador.innerText = `${armados}/${total}`;
+            
+            if (armados === total && total > 0) {
+                contador.classList.replace('text-blue-600', 'text-green-600');
+            } else {
+                contador.classList.replace('text-green-600', 'text-blue-600');
+            }
+        }
+
+        // BUSCADOR EN VIVO
+        function filtrarItems() {
+            const texto = document.getElementById('buscador-items').value.toLowerCase();
+            const cards = document.querySelectorAll('.item-card');
+            
+            cards.forEach((card, index) => {
+                const desc = pedidoActual.items[index].descripcion.toLowerCase();
+                if (desc.includes(texto)) {
+                    card.classList.remove('hidden');
+                    card.classList.add('flex');
+                } else {
+                    card.classList.add('hidden');
+                    card.classList.remove('flex');
+                }
+            });
+        }
+
         function renderizarItems() {
             const container = document.getElementById('lista-articulos');
             container.innerHTML = '';
@@ -308,7 +351,6 @@
                 card.id = `card_${index}`;
                 card.className = `item-card ${bgClass} border-2 rounded-2xl p-4 mb-3 flex items-center justify-between shadow-sm relative overflow-hidden`;
                 
-                // Lógica de Pulsación Larga (Long Press)
                 let pressTimer;
                 card.addEventListener('touchstart', () => { pressTimer = setTimeout(() => abrirModalEditar(index), 600); }, {passive: true});
                 card.addEventListener('touchend', () => clearTimeout(pressTimer));
@@ -331,9 +373,10 @@
                 `;
                 container.appendChild(card);
             });
+            actualizarContadorProgreso();
+            filtrarItems(); // Por si quedó texto en el buscador al editar
         }
 
-        // 3. CHECKBOX TÁCTIL
         function toggleItem(index) {
             const item = pedidoActual.items[index];
             item.armado = !item.armado;
@@ -349,24 +392,22 @@
                 card.classList.remove('item-armado');
                 card.classList.add('bg-white', 'border-slate-200');
             }
+            
+            actualizarContadorProgreso();
 
-            // Guardar en background
             fetch(API_URL, {
                 method: 'POST',
                 body: JSON.stringify({ accion: 'marcarItem', idArchivo: idArchivoActual, fila: item.filaSpreadsheet, estado: item.armado })
             }).catch(() => console.error("Error sincronizando en background"));
         }
 
-        // 4. EDICIÓN Y AGREGADO 
         function abrirModalEditar(index) {
             modoEdicion = 'editar';
             itemEditando = index;
             const item = pedidoActual.items[index];
-            
             document.getElementById('titulo-modal-edicion').innerText = "Modificar Artículo";
             document.getElementById('input-cantidad').value = item.cantidad;
             document.getElementById('input-descripcion').value = item.descripcion.replace(' (modificado)', '');
-            
             document.getElementById('modal-edicion').classList.remove('hidden');
         }
 
@@ -375,7 +416,6 @@
             document.getElementById('titulo-modal-edicion').innerText = "Agregar Nuevo Artículo";
             document.getElementById('input-cantidad').value = "";
             document.getElementById('input-descripcion').value = "";
-            
             document.getElementById('modal-edicion').classList.remove('hidden');
             setTimeout(() => document.getElementById('input-cantidad').focus(), 100);
         }
@@ -386,7 +426,6 @@
             const desc = document.getElementById('input-descripcion').value.toUpperCase();
 
             if (!qty || !desc) { alert("Completá ambos campos"); return; }
-
             btn.innerText = "GUARDANDO...";
             btn.disabled = true;
 
@@ -398,7 +437,6 @@
                         body: JSON.stringify({ accion: 'editarItem', idArchivo: idArchivoActual, fila: item.filaSpreadsheet, cantidad: qty, descripcion: desc })
                     });
                     const data = await res.json();
-                    
                     item.cantidad = qty;
                     item.descripcion = data.nuevaDesc; 
                 } 
@@ -408,7 +446,6 @@
                         body: JSON.stringify({ accion: 'agregarItem', idArchivo: idArchivoActual, cantidad: qty, descripcion: desc })
                     });
                     const data = await res.json();
-                    
                     pedidoActual.items.push({
                         filaSpreadsheet: data.fila,
                         armado: false,
@@ -420,20 +457,15 @@
                 renderizarItems(); 
                 cerrarModal('modal-edicion');
                 if(modoEdicion === 'agregar'){ window.scrollTo(0, document.body.scrollHeight); }
-
-            } catch (e) {
-                alert("Error al guardar. Revisá tu conexión.");
-            }
+            } catch (e) { alert("Error al guardar. Revisá tu conexión."); }
 
             btn.innerText = "GUARDAR";
             btn.disabled = false;
         }
 
-        // 5. FLUJO DE CIERRE Y REPASO FINAL
         function abrirToastConfirmacion() {
             const listaRepaso = document.getElementById('lista-resumen-toast');
             listaRepaso.innerHTML = '';
-            
             const itemsClave = [...pedidoActual.items].sort((a,b) => b.cantidad - a.cantidad).slice(0, 5);
             
             itemsClave.forEach(item => {
@@ -443,7 +475,6 @@
             if(pedidoActual.items.length > 5) {
                listaRepaso.innerHTML += `<div class="font-bold text-xs text-slate-400 mt-1 italic">... y ${pedidoActual.items.length - 5} artículos más.</div>`; 
             }
-
             document.getElementById('check-verificado').checked = false;
             verificarCheckCierre(); 
             document.getElementById('modal-repaso').classList.remove('hidden');
@@ -473,18 +504,14 @@
                     body: JSON.stringify({ accion: 'marcarPedidoCompleto', idArchivo: idArchivoActual })
                 });
                 cerrarModal('modal-repaso');
-                
-                // Limpiar estado de resiliencia
                 localStorage.removeItem('pedidoAbiertoId');
                 
-                // Gamificación y Tiempos
                 const tiempoFin = Date.now();
                 const minutos = Math.round((tiempoFin - tiempoInicioPedido) / 60000);
                 guardarTiempoPromedio(minutos);
                 sumarProgresoDiario();
                 actualizarEstadisticasUI();
 
-                // Buscar Siguiente Pedido Automáticamente
                 const indexActual = listaActualCache.findIndex(p => p.id === idArchivoActual);
                 const siguientePedido = listaActualCache[indexActual + 1];
 
@@ -508,16 +535,11 @@
                         cargarLista(tabActiva);
                     }
                 }, 2000);
-
             } catch(e) {
                 alert("Hubo un error al cerrar el pedido.");
                 btn.innerText = "CERRAR Y SEGUIR AL PRÓXIMO 🚀";
             }
         }
-
-        // ==========================================
-        // MOTORES DE GAMIFICACIÓN E INTELIGENCIA
-        // ==========================================
 
         function guardarTiempoPromedio(minutos) {
             if (minutos <= 0 || minutos > 300) return; 
