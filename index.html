@@ -526,7 +526,11 @@
 
         async function procesarCierrePedido() {
             const btn = document.getElementById('btn-cierre-definitivo');
+            
+            // Bloqueamos el botón del Modal al instante para evitar rebotes
+            btn.disabled = true;
             btn.innerText = "PROCESANDO...";
+            btn.classList.replace('bg-green-600', 'bg-slate-500'); 
             
             try {
                 await fetch(API_URL, {
@@ -567,7 +571,10 @@
                 }, 2000);
             } catch(e) {
                 alert("Hubo un error al cerrar el pedido.");
+                // Si falla por internet, lo volvemos a encender
                 btn.innerText = "CERRAR Y SEGUIR AL PRÓXIMO 🚀";
+                btn.classList.replace('bg-slate-500', 'bg-green-600');
+                btn.disabled = false;
             }
         }
 
