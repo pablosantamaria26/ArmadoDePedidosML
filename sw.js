@@ -1,5 +1,5 @@
 // 1. CAMBIAMOS LA VERSIÓN A V2 (Esto le avisa al celular que hay código nuevo)
-const CACHE_NAME = 'pedidos-ml-v2'; 
+const CACHE_NAME = 'pedidos-ml-v3'; 
 const archivosParaCachear = [
   './',
   './index.html',
