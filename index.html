@@ -322,7 +322,11 @@
 
                 renderizarItems();
 
+            
             } catch (error) {
+                // 👇 AGREGA ESTA LÍNEA PARA VER EL ERROR REAL
+                console.error("Falla al abrir el pedido:", error); 
+                
                 mostrarLoading(false);
                 alert("Error cargando pedido.");
                 cerrarPedidoEnCurso();
