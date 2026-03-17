@@ -362,7 +362,10 @@
             const cards = document.querySelectorAll('.item-card');
             
             cards.forEach((card, index) => {
-                const desc = pedidoActual.items[index].descripcion.toLowerCase();
+                // 👇 ACÁ ESTÁ EL CAMBIO MÁGICO
+                const descRaw = pedidoActual.items[index].descripcion;
+                const desc = String(descRaw || "").toLowerCase(); 
+                
                 if (desc.includes(texto)) {
                     card.classList.remove('hidden');
                     card.classList.add('flex');
@@ -441,7 +444,11 @@
             const item = pedidoActual.items[index];
             document.getElementById('titulo-modal-edicion').innerText = "Modificar Artículo";
             document.getElementById('input-cantidad').value = item.cantidad;
-            document.getElementById('input-descripcion').value = item.descripcion.replace(' (modificado)', '');
+            
+            // 👇 ACÁ PREVENIMOS EL ERROR FORZANDO A TEXTO ANTES DEL REPLACE
+            const descSegura = String(item.descripcion || "");
+            document.getElementById('input-descripcion').value = descSegura.replace(' (modificado)', '');
+            
             document.getElementById('modal-edicion').classList.remove('hidden');
         }
 
